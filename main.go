@@ -4,8 +4,12 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"log"
+	"encoding/json"
+	"net/http"
 
 	"github.com/go-kit/kit/endpoint"
+	httptransport "github.com/go-kit/kit/transport/http"
 )
 
 // StringService provides operations on strings.
@@ -84,4 +88,37 @@ func makeCountEndpoint(svc StringService) endpoint.Endpoint {
 
 		return countResponse{v}, nil
 	}
+}
+/**
+ * TRANSPORTS
+ * Now we need to expose your service to the outside world, so it can be called.
+ * Go kit supports many TRANSPORTS out of the box.
+ * For this minimal example service, let's use JSON over HTTP.
+ * Go kit provides a helper struct, in package transport/http
+ */
+func main() {
+	svc := stringService{}
+
+	uppercaseHandler := httptransport.NewServer(
+		makeUppercaseEndpoint(svc),
+		decodeUppercaseRequest,
+		encodeResponse,
+	)
+
+	http.Handle("/uppercase", uppercaseHandler)
+
+	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+func decodeUppercaseRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	var request uppercaseRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		return nil, err
+	}
+
+	return request, nil
+}
+
+func encodeResponse(_ context.Context, w http.ResponseWriter, response interface{}) error {
+	return json.NewEncoder(w).Encode(response)
 }
