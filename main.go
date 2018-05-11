@@ -105,7 +105,14 @@ func main() {
 		encodeResponse,
 	)
 
+	countHandler := httptransport.NewServer(
+		makeCountEndpoint(svc),
+		decodCountRequest,
+		encodeResponse,
+	)
+
 	http.Handle("/uppercase", uppercaseHandler)
+	http.Handle("/count", countHandler)
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
@@ -117,6 +124,15 @@ func decodeUppercaseRequest(_ context.Context, r *http.Request) (interface{}, er
 	}
 
 	return request, nil
+}
+
+func decodCountRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	var req countRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return nil, err
+	}
+
+	return req, nil
 }
 
 func encodeResponse(_ context.Context, w http.ResponseWriter, response interface{}) error {
